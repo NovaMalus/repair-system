@@ -7,13 +7,15 @@
  */
 import { ref, computed } from 'vue'
 import { onLoad, onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
-import { useToast } from '@wot-ui/ui'
+import { useToast, useDialog } from '@wot-ui/ui'
 import { myOrders, cancelOrder, confirmOrder } from '@/api/order'
 import { getCachedUser, getToken } from '@/utils/token'
 import { REPORTER_STATUS_FILTERS, orderStatusLabel, orderStatusCls } from '@/utils/status'
 import type { OrderVO, UserInfo } from '@/types/api'
 
 const toast = useToast()
+/** 确认弹窗（wd-dialog，替换 uni.showModal，深色模式友好） */
+const dialog = useDialog()
 
 /** 本地缓存的登录用户（用于导航栏标题展示） */
 const user = ref<UserInfo | null>(getCachedUser<UserInfo>())
@@ -92,6 +94,7 @@ function switchFilter(value: string) {
 }
 
 function goCreate() {
+  if (isAccountDisabled()) return
   uni.navigateTo({ url: '/pages/order/create' })
 }
 
@@ -100,7 +103,21 @@ function goDetail(id: number) {
 }
 
 function goEdit(id: number) {
+  if (isAccountDisabled()) return
   uni.navigateTo({ url: `/pages/order/edit?id=${id}` })
+}
+
+/** 信誉分过低被禁用（status===0）时拦截提交报修/修改，并弹窗提示 */
+function isAccountDisabled(): boolean {
+  if (user.value?.status === 0) {
+    dialog.alert({
+      title: '账号已禁用',
+      msg: '您的信誉分过低，账号已被禁用，请联系管理员。',
+      confirmButtonText: '知道了',
+    })
+    return true
+  }
+  return false
 }
 
 /** 前往个人中心 */
@@ -174,6 +191,14 @@ function formatTime(time: string): string {
 onLoad(() => {
   ensureLogin()
   fetchOrders(true)
+  // 信誉分过低被禁用的用户：reLaunch 进入首页时弹一次禁用提示（深色模式友好）
+  if (user.value?.status === 0) {
+    dialog.alert({
+      title: '账号已禁用',
+      msg: '您的信誉分过低，账号已被禁用，请联系管理员。',
+      confirmButtonText: '知道了',
+    })
+  }
 })
 
 // 提交报修返回后刷新列表
@@ -362,6 +387,7 @@ onReachBottom(() => {
     </wd-popup>
 
     <wd-toast />
+    <wd-dialog />
   </view>
 </template>
 

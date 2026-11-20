@@ -88,5 +88,5 @@ export const REPAIRER_STATUS_FILTERS: { label: string; value: string }[] = [
   { label: '待接单', value: 'ASSIGNED' },
   { label: '维修中', value: 'PROCESSING' },
   { label: '申请中', value: 'REASSIGNING,ARBITRATING' },
-  { label: '已完成', value: 'COMPLETED' },
+  { label: '已完成', value: 'COMPLETED,REJECTED' },
 ]

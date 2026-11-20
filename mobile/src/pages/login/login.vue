@@ -86,8 +86,9 @@ async function handleLogin() {
     setTimeout(() => {
       uni.reLaunch({ url: res.user.role === 'REPAIRER' ? '/pages/master/index' : '/pages/index/index' })
     }, 300)
-  } catch {
-    // 错误提示已由 request 层统一 showToast 处理（含待审核/已拒绝的审核拦截文案）
+  } catch (err) {
+    // 登录失败（含 401「用户名或密码错误」等）由本页显式弹出后端错误信息
+    uni.showToast({ title: (err as Error)?.message || '登录失败', icon: 'none' })
   } finally {
     loading.value = false
   }

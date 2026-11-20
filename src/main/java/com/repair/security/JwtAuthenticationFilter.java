@@ -61,8 +61,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Claims claims = jwtUtil.parseToken(token);
         Long userId = Long.valueOf(claims.getSubject());
         User user = userMapper.selectById(userId);
-        if (user == null || user.getStatus() == null || user.getStatus() != 1) {
-            // 用户不存在 / 已逻辑删除 / 已禁用：不写入认证信息
+        if (user == null) {
+            // 用户不存在 / 已逻辑删除：不写入认证信息
+            return;
+        }
+        boolean disabled = user.getStatus() == null || user.getStatus() != 1;
+        // 信誉分过低（<60）导致的禁用：放行其携带 token 访问登录后接口（如「我的工单」），
+        // 使前端「允许进入首页」真正生效；写操作由 Service 层另行强校验拦截。
+        boolean creditDisabled = disabled && user.getCreditScore() != null && user.getCreditScore() < 60;
+        if (disabled && !creditDisabled) {
+            // 非信誉分导致的禁用（管理员手动禁用）：不写入认证信息
             return;
         }
         LoginUser loginUser = new LoginUser(user.getId(), user.getUsername(), user.getRole());

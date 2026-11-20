@@ -30,9 +30,10 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
     List<Map<String, Object>> selectStatusCount();
 
     /**
-     * 看板统计：近 7 天每日新增数（created_at）与完成数（finish_time）。
+     * 看板统计：近 7 天每日新增数（created_at）与完成数。
      * 一条 SQL 同时产出两列：day、new_count、done_count。
-     * 完成数按 finish_time 统计，覆盖 COMPLETED 与 CONFIRMED 两类终态前的完成时刻。
+     * 完成数口径与顶部完成率一致：COMPLETED / CONFIRMED 按 finish_time 统计，
+     * REJECTED 按 updated_at 统计（REJECTED 为终态且无 finish_time，updated_at 即驳回时刻）。
      *
      * @param start 统计起点（今天往前 6 天的 00:00:00，共 7 天）
      */
@@ -41,7 +42,11 @@ public interface RepairOrderMapper extends BaseMapper<RepairOrder> {
             + "FROM repair_order WHERE deleted = 0 AND created_at >= #{start} "
             + "UNION ALL "
             + "SELECT DATE_FORMAT(finish_time, '%Y-%m-%d') AS day, 0 AS new_cnt, 1 AS done_cnt "
-            + "FROM repair_order WHERE deleted = 0 AND finish_time IS NOT NULL AND finish_time >= #{start}"
+            + "FROM repair_order WHERE deleted = 0 AND finish_time IS NOT NULL AND finish_time >= #{start} "
+            + "UNION ALL "
+            + "SELECT DATE_FORMAT(updated_at, '%Y-%m-%d') AS day, 0 AS new_cnt, 1 AS done_cnt "
+            + "FROM repair_order WHERE deleted = 0 AND status = 'REJECTED' "
+            + "AND updated_at IS NOT NULL AND updated_at >= #{start}"
             + ") t GROUP BY day")
     List<Map<String, Object>> selectTrend(@Param("start") LocalDateTime start);
 }

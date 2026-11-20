@@ -47,6 +47,7 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Collections;
@@ -99,6 +100,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public Long submit(CreateOrderRequest request) {
         LoginUser current = SecurityUtil.getCurrentUser();
+        requireReporterActive(current);
         Category category = categoryService.getEnabledById(request.getCategoryId());
 
         // 防存储型 XSS：过滤用户提交的标题与描述中的 HTML 标签；标题清洗后为空视为非法
@@ -202,6 +204,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public void update(Long id, UpdateOrderRequest request) {
         LoginUser current = SecurityUtil.getCurrentUser();
+        requireReporterActive(current);
         RepairOrder order = lockOrder(id);
         requireReporter(order, current);
         // 修改不改变状态：仅 PENDING 可改（PENDING→PENDING 不在状态机内，故直接守卫）
@@ -231,7 +234,10 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ErrorCode.ORDER_STATUS_INVALID);
         }
 
-        recordLog(order.getId(), current, "UPDATE", OrderStatus.PENDING, OrderStatus.PENDING, "报修人修改工单");
+        recordLog(order.getId(), current, "UPDATE", OrderStatus.PENDING, OrderStatus.PENDING,
+                buildUpdateRemark(order, cleanTitle, cleanHtml(request.getDescription()),
+                        request.getImages(), request.getAddress(), request.getContactPhone(),
+                        category.getId()));
 
         notifyService.notifyUsers(listEnabledUserIds(RoleEnum.ADMIN), NotificationType.ORDER,
                 "报修工单已修改",
@@ -252,8 +258,15 @@ public class OrderServiceImpl implements OrderService {
                 .set("rating_comment", request.getRatingComment())
                 .set("confirm_time", LocalDateTime.now());
         transition(order, OrderStatus.CONFIRMED, wrapper);
+
+        // 拼接评价日志：星级 + 评语（评语选填，为空则不追加）
+        String stars = request.getRating().stripTrailingZeros().toPlainString();
+        StringBuilder confirmRemark = new StringBuilder("报修人确认并评价：" + stars + " 星");
+        if (StringUtils.hasText(request.getRatingComment())) {
+            confirmRemark.append("。评语：").append(request.getRatingComment().trim());
+        }
         recordLog(order.getId(), current, "CONFIRM", OrderStatus.COMPLETED, OrderStatus.CONFIRMED,
-                "报修人确认并评价：" + request.getRating() + " 分");
+                confirmRemark.toString());
 
         // 更新师傅聚合数据（行锁防并发丢失更新）
         if (order.getRepairerId() != null) {
@@ -807,6 +820,39 @@ public class OrderServiceImpl implements OrderService {
     private void requireReporter(RepairOrder order, LoginUser current) {
         if (!order.getReporterId().equals(current.getUserId())) {
             throw new BusinessException(ErrorCode.ORDER_NOT_OWNED);
+        }
+    }
+
+    /** 校验报修人账号可用：禁用（status != 1）时拦截提交/修改，兜底前端拦截 */
+    private void requireReporterActive(LoginUser current) {
+        User user = userMapper.selectById(current.getUserId());
+        if (user == null || user.getStatus() == null || user.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.ACCOUNT_DISABLED);
+        }
+    }
+
+    /** 构建「报修人修改工单」的字段差异日志：仅列出有变化的字段 */
+    private String buildUpdateRemark(RepairOrder before, String newTitle, String newDescription,
+                                     String newImages, String newAddress, String newContactPhone,
+                                     Long newCategoryId) {
+        List<String> diffs = new ArrayList<>();
+        diff(diffs, "分类", categoryName(before.getCategoryId()), categoryName(newCategoryId));
+        diff(diffs, "标题", before.getTitle(), newTitle);
+        diff(diffs, "描述", before.getDescription(), newDescription);
+        diff(diffs, "地址", before.getAddress(), newAddress);
+        diff(diffs, "联系电话", before.getContactPhone(), newContactPhone);
+        diff(diffs, "图片", before.getImages(), newImages);
+        return diffs.isEmpty()
+                ? "报修人修改工单（无字段变化）"
+                : "报修人修改工单：" + String.join("；", diffs);
+    }
+
+    /** 单字段对比：前后不一致时追加「修改了X：旧 -> 新」，null 视为空 */
+    private void diff(List<String> diffs, String label, Object before, Object after) {
+        String b = before == null ? "" : String.valueOf(before);
+        String a = after == null ? "" : String.valueOf(after);
+        if (!b.equals(a)) {
+            diffs.add("修改了" + label + "：" + (b.isEmpty() ? "空" : b) + " -> " + (a.isEmpty() ? "空" : a));
         }
     }
 

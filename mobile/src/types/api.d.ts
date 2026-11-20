@@ -26,6 +26,8 @@ export interface UserInfo {
   /** 角色：ADMIN 管理员 / REPAIRER 师傅 / REPORTER 报修人 */
   role: 'ADMIN' | 'REPAIRER' | 'REPORTER'
   avatar: string | null
+  /** 1 启用 / 0 禁用 */
+  status?: number
   /** 信誉分（报修人恶意报修被仲裁通过时扣减） */
   creditScore?: number
 }

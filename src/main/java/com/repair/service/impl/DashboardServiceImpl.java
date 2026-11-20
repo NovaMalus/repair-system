@@ -65,8 +65,10 @@ public class DashboardServiceImpl implements DashboardService {
         long totalOrders = statusCounts.values().stream().mapToLong(Long::longValue).sum();
         long pendingCount = statusCounts.getOrDefault(OrderStatus.PENDING, 0L);
         long processingCount = statusCounts.getOrDefault(OrderStatus.PROCESSING, 0L);
+        // 完成率口径：COMPLETED + CONFIRMED + REJECTED（已驳回也计入已完成单量）
         long completedConfirmed = statusCounts.getOrDefault(OrderStatus.COMPLETED, 0L)
-                + statusCounts.getOrDefault(OrderStatus.CONFIRMED, 0L);
+                + statusCounts.getOrDefault(OrderStatus.CONFIRMED, 0L)
+                + statusCounts.getOrDefault(OrderStatus.REJECTED, 0L);
         BigDecimal completionRate = percent(completedConfirmed, totalOrders);
 
         // 状态分布：固定 7 态，缺失补 0

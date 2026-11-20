@@ -23,7 +23,7 @@ public class DashboardStatsVO {
     /** 维修中工单数（PROCESSING） */
     private Long processingCount;
 
-    /** 完成率（%）：(COMPLETED + CONFIRMED) / totalOrders，保留 1 位小数 */
+    /** 完成率（%）：(COMPLETED + CONFIRMED + REJECTED) / totalOrders，保留 1 位小数 */
     private BigDecimal completionRate;
 
     /** 状态分布（固定 7 态，用于环形图） */

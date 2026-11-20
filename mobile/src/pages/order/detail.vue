@@ -7,23 +7,37 @@
  */
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { useDialog } from '@wot-ui/ui'
 import { orderDetail, cancelOrder } from '@/api/order'
-import { getToken } from '@/utils/token'
+import { getCachedUser, getToken } from '@/utils/token'
 import { orderStatusLabel, orderStatusCls } from '@/utils/status'
-import type { OrderDetailVO, OrderLogVO } from '@/types/api'
+import type { OrderDetailVO, OrderLogVO, UserInfo } from '@/types/api'
+
+const dialog = useDialog()
 
 const detail = ref<OrderDetailVO | null>(null)
 const loading = ref(true)
 const loadError = ref(false)
+
+/** 本地缓存的登录用户（用于禁用状态校验） */
+const user = ref<UserInfo | null>(getCachedUser<UserInfo>())
 
 /* ---------- 撤回弹窗（仅待受理 PENDING 可撤回） ---------- */
 const cancelVisible = ref(false)
 const cancelReason = ref('')
 const cancelSubmitting = ref(false)
 
-/** 跳转修改页（仅 PENDING 可进入） */
+/** 跳转修改页（仅 PENDING 可进入；被禁用用户拦截） */
 function goEdit() {
   if (!detail.value) return
+  if (user.value?.status === 0) {
+    dialog.alert({
+      title: '账号已禁用',
+      msg: '您的信誉分过低，账号已被禁用，请联系管理员。',
+      confirmButtonText: '知道了',
+    })
+    return
+  }
   uni.navigateTo({ url: `/pages/order/edit?id=${detail.value.id}` })
 }
 
@@ -323,6 +337,7 @@ onLoad((query) => {
     </wd-popup>
 
     <wd-toast />
+    <wd-dialog />
   </view>
 </template>
 

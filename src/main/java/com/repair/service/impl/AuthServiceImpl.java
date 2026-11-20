@@ -48,8 +48,13 @@ public class AuthServiceImpl implements AuthService {
             // 统一提示，不暴露账号是否存在
             throw new BusinessException(ErrorCode.LOGIN_FAILED);
         }
+        // 禁用账号：仅「信誉分过低（<60）导致的禁用」允许登录，正常下发 token；
+        // 管理员手动禁用（status=0 但信誉分正常）仍拦截，保持「禁用即时生效」语义。
         if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new BusinessException(ErrorCode.ACCOUNT_DISABLED);
+            boolean creditDisabled = user.getCreditScore() != null && user.getCreditScore() < 60;
+            if (!creditDisabled) {
+                throw new BusinessException(ErrorCode.ACCOUNT_DISABLED);
+            }
         }
         // 师傅账号登录前校验审核状态：待审核 / 已拒绝一律拦截；报修人、管理员不受影响
         if (RoleEnum.REPAIRER.equals(user.getRole())) {
