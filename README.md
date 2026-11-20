@@ -175,21 +175,14 @@ pnpm run dev:h5
 
 ## 🖼️ 项目截图
 
-> **提示**：请在项目根目录创建 `docs/images` 文件夹，将对应截图放入后推送到 GitHub，即可在下方占位符位置展示。截图建议尺寸：PC 端 16:10，移动端 9:19.5。
+> 项目运行实机截图如下（包含 PC 管理端与移动端）：
 
-| 截图 | 占位说明 |
-| --- | --- |
-| PC 端数据看板 | `![PC端数据看板](./docs/images/dashboard.png)` |
-| PC 端工单列表 | `![PC端工单列表](./docs/images/order-list.png)` |
-| 移动端首页 | `![移动端首页](./docs/images/mobile-home.png)` |
-| 移动端工单详情 | `![移动端工单详情](./docs/images/mobile-detail.png)` |
-
+### 🖥️ PC 端
 ![PC端数据看板](./docs/images/dashboard.png)
-
 ![PC端工单列表](./docs/images/order-list.png)
 
+### 📱 移动端
 ![移动端首页](./docs/images/mobile-home.png)
-
 ![移动端工单详情](./docs/images/mobile-detail.png)
 
 ---
