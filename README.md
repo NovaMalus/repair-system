@@ -182,11 +182,14 @@ pnpm run dev:h5
 ![PC端工单列表](./docs/images/order-list.png)
 
 ### 📱 移动端
-<p align="center">
-  <img src="./docs/images/mobile-home.png" width="280" alt="移动端首页" />
-  <img src="./docs/images/mobile-detail.png" width="280" alt="移动端工单详情" />
-  <img src="./docs/images/mobile-master.png" width="280" alt="移动端师傅工作台" />
-</p>
+<table align="center">
+  <tr>
+    <td><img src="./docs/images/mobile-home.png" width="280" alt="移动端首页"></td>
+    <td><img src="./docs/images/mobile-detail.png" width="280" alt="移动端工单详情"></td>
+    <td><img src="./docs/images/mobile-master.png" width="280" alt="移动端师傅工作台"></td>
+  </tr>
+</table>
+
 
 
 ---
